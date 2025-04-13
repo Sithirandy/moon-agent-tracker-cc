@@ -1,0 +1,42 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Login to ECR
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build and Push Docker Images
+      run: |
+        docker build -t ${{ secrets.715841324407.dkr.ecr.ap-south-1.amazonaws.com/agent-service }}/agent-service:latest ./agent-service
+        docker push ${{ secrets.715841324407.dkr.ecr.ap-south-1.amazonaws.com/agent-service }}/agent-service:latest
+
+        docker build -t ${{ secrets.715841324407.dkr.ecr.ap-south-1.amazonaws.com/integration-service }}/integration-service:latest ./integration-service
+        docker push ${{ secrets.715841324407.dkr.ecr.ap-south-1.amazonaws.com/integration-service }}/integration-service:latest
+
+        docker build -t ${{ secrets.715841324407.dkr.ecr.ap-south-1.amazonaws.com/notification-service }}/notification-service:latest ./notification-service
+        docker push ${{ secrets.715841324407.dkr.ecr.ap-south-1.amazonaws.com/notification-service }}/notification-service:latest
+
+        docker build -t ${{ secrets.715841324407.dkr.ecr.ap-south-1.amazonaws.com/aggregator-service }}/aggregator-service:latest ./aggregator-service
+        docker push ${{ secrets.715841324407.dkr.ecr.ap-south-1.amazonaws.com/aggregator-service }}/aggregator-service:latest
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AKIA2NK3XYV3UDT3Q6EH }}
+        aws-secret-access-key: ${{ secrets.ryAudffJnfY4o7RnvxJnGVVm9LmuPV3wUsUQ92fZ }}
+        aws-region: ap-south-1
+
+    - name: Deploy to EKS
+      run: |
+        aws eks update-kubeconfig --name moon-agent-cluster --region ap-south-1
+        kubectl apply -f k8s/
