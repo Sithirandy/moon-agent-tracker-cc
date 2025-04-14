@@ -1,23 +1,31 @@
 from flask import Flask, jsonify
-from datetime import datetime
 
 app = Flask(__name__)
 
-# Simulate sales data
+# Simulated data
 sales_data = [
-    {"team": "A", "product": "Life Plan", "branch": "Colombo", "sales": 120},
-    {"team": "B", "product": "Health Plan", "branch": "Kandy", "sales": 150},
-    {"team": "A", "product": "Health Plan", "branch": "Colombo", "sales": 180}
+    {"agent_code": "A101", "product": "Life", "branch": "Colombo"},
+    {"agent_code": "A102", "product": "Term", "branch": "Kandy"},
+    {"agent_code": "A101", "product": "Life", "branch": "Colombo"},
+    {"agent_code": "A103", "product": "Term", "branch": "Colombo"}
 ]
 
-@app.route('/aggregate', methods=['GET'])
+@app.route("/aggregate", methods=["GET"])
 def aggregate():
-    results = {
-        "top_team": max(sales_data, key=lambda x: x['sales'])['team'],
-        "top_product": max(sales_data, key=lambda x: x['sales'])['product'],
-        "timestamp": datetime.utcnow().isoformat()
-    }
-    return jsonify(results)
+    product_counts = {}
+    branch_counts = {}
 
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+    for sale in sales_data:
+        product = sale["product"]
+        branch = sale["branch"]
+
+        product_counts[product] = product_counts.get(product, 0) + 1
+        branch_counts[branch] = branch_counts.get(branch, 0) + 1
+
+    return jsonify({
+        "top_products": product_counts,
+        "branch_performance": branch_counts
+    })
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5003)

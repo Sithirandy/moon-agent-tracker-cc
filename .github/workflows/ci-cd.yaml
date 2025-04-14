@@ -1,42 +1,58 @@
-name: CI/CD Pipeline
+name: Deploy to Kubernetes (Blue-Green)
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - master
+
+env:
+  EKS_CLUSTER_NAME: moonagent-cluster
+  AWS_REGION: ap-south-1
+  DOCKER_IMAGE_AGENT: your-dockerhub/agent-service
+  DOCKER_IMAGE_INTEGRATION: your-dockerhub/integration-service
+  DOCKER_IMAGE_NOTIFICATION: your-dockerhub/notification-service
+  DOCKER_IMAGE_AGGREGATOR: your-dockerhub/aggregator-service
 
 jobs:
-  build-and-deploy:
+  deploy:
+    name: CI/CD for Moon Agent Tracker
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
-
-    - name: Login to ECR
-      uses: aws-actions/amazon-ecr-login@v1
-
-    - name: Build and Push Docker Images
-      run: |
-        docker build -t ${{ secrets.715841324407.dkr.ecr.ap-south-1.amazonaws.com/agent-service }}/agent-service:latest ./agent-service
-        docker push ${{ secrets.715841324407.dkr.ecr.ap-south-1.amazonaws.com/agent-service }}/agent-service:latest
-
-        docker build -t ${{ secrets.715841324407.dkr.ecr.ap-south-1.amazonaws.com/integration-service }}/integration-service:latest ./integration-service
-        docker push ${{ secrets.715841324407.dkr.ecr.ap-south-1.amazonaws.com/integration-service }}/integration-service:latest
-
-        docker build -t ${{ secrets.715841324407.dkr.ecr.ap-south-1.amazonaws.com/notification-service }}/notification-service:latest ./notification-service
-        docker push ${{ secrets.715841324407.dkr.ecr.ap-south-1.amazonaws.com/notification-service }}/notification-service:latest
-
-        docker build -t ${{ secrets.715841324407.dkr.ecr.ap-south-1.amazonaws.com/aggregator-service }}/aggregator-service:latest ./aggregator-service
-        docker push ${{ secrets.715841324407.dkr.ecr.ap-south-1.amazonaws.com/aggregator-service }}/aggregator-service:latest
+      uses: actions/checkout@v4
 
     - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
+      uses: aws-actions/configure-aws-credentials@v4
       with:
-        aws-access-key-id: ${{ secrets.AKIA2NK3XYV3UDT3Q6EH }}
-        aws-secret-access-key: ${{ secrets.ryAudffJnfY4o7RnvxJnGVVm9LmuPV3wUsUQ92fZ }}
-        aws-region: ap-south-1
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
 
-    - name: Deploy to EKS
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+
+    - name: Set up kubeconfig
       run: |
-        aws eks update-kubeconfig --name moon-agent-cluster --region ap-south-1
-        kubectl apply -f k8s/
+        aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
+
+    - name: Deploy Blue Environment
+      run: |
+        kubectl apply -f k8s/blue-green/blue/
+        kubectl apply -f k8s/blue-green/services/
+
+    - name: Wait for blue to stabilize
+      run: sleep 20
+
+    - name: Run Tests (Post-Deployment)
+      run: |
+        curl --fail http://$(kubectl get svc agent-service -o jsonpath='{.spec.clusterIP}') || exit 1
+
+    - name: Switch traffic to Blue
+      run: |
+        sed -i 's/version: green/version: blue/' k8s/blue-green/services/*.yaml
+        kubectl apply -f k8s/blue-green/services/
+
+    - name: Delete Green Deployment (optional cleanup)
+      run: |
+        kubectl delete -f k8s/blue-green/green/ || true
