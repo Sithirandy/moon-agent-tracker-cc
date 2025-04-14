@@ -8,10 +8,11 @@ on:
 env:
   EKS_CLUSTER_NAME: moon-agent-tracker-cluster
   AWS_REGION: ap-south-1
-  DOCKER_IMAGE_AGENT: sithirandy/agent-service
-  DOCKER_IMAGE_INTEGRATION: sithirandy/integration-service
-  DOCKER_IMAGE_NOTIFICATION: sithirandy/notification-service
-  DOCKER_IMAGE_AGGREGATOR: sithirandy/aggregator-service
+
+  DOCKER_IMAGE_AGENT: 715841324407.dkr.ecr.ap-south-1.amazonaws.com/agent-service
+  DOCKER_IMAGE_INTEGRATION: 715841324407.dkr.ecr.ap-south-1.amazonaws.com/integration-service
+  DOCKER_IMAGE_NOTIFICATION: 715841324407.dkr.ecr.ap-south-1.amazonaws.com/notification-service
+  DOCKER_IMAGE_AGGREGATOR: 715841324407.dkr.ecr.ap-south-1.amazonaws.com/aggregator-service
 
 jobs:
   deploy:
@@ -36,35 +37,56 @@ jobs:
       run: |
         aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
 
+    # 🔵 Deploy Blue Environment
     - name: Deploy Blue Environment
       run: |
         kubectl apply -f k8s/blue-green/blue/
-        kubectl apply -f k8s/blue-green/services/
+        kubectl apply -f k8s/blue-green/services-blue/
 
-    - name: Wait for blue to stabilize
-      run: sleep 20
-
-    - name: Health Check Agent Service
+    # 🟢 Wait for Blue Rollout to Complete
+    - name: Wait for Blue Rollout
       run: |
-        curl --fail http://${{ secrets.AGENT_SERVICE_HOST }}:5000 || exit 1
+        kubectl rollout status deployment/agent-service-blue
+        kubectl rollout status deployment/integration-service-blue
+        kubectl rollout status deployment/notification-service-blue
+        kubectl rollout status deployment/aggregator-service-blue
 
-    - name: Health Check Notification Service
+    # ✅ Health Check via Port Forwarding
+    - name: Health Check Agent Service (Blue)
       run: |
-        curl --fail http://${{ secrets.NOTIFICATION_SERVICE_HOST }}:5001 || exit 1
+        POD=$(kubectl get pods -l app=agent-service,version=blue -o jsonpath="{.items[0].metadata.name}")
+        kubectl port-forward $POD 5000:5000 &
+        sleep 5
+        curl --fail http://localhost:5000 || exit 1
 
-    - name: Health Check Integration Service
+    - name: Health Check Notification Service (Blue)
       run: |
-        curl --fail http://${{ secrets.INTEGRATION_SERVICE_HOST }}:5002 || exit 1
+        POD=$(kubectl get pods -l app=notification-service,version=blue -o jsonpath="{.items[0].metadata.name}")
+        kubectl port-forward $POD 5002:5002 &
+        sleep 5
+        curl --fail http://localhost:5002 || exit 1
 
-    - name: Health Check Aggregator Service
+    - name: Health Check Integration Service (Blue)
       run: |
-        curl --fail http://${{ secrets.AGGREGATOR_SERVICE_HOST }}:5003 || exit 1
+        POD=$(kubectl get pods -l app=integration-service,version=blue -o jsonpath="{.items[0].metadata.name}")
+        kubectl port-forward $POD 5001:5001 &
+        sleep 5
+        curl --fail http://localhost:5001 || exit 1
 
+    - name: Health Check Aggregator Service (Blue)
+      run: |
+        POD=$(kubectl get pods -l app=aggregator-service,version=blue -o jsonpath="{.items[0].metadata.name}")
+        kubectl port-forward $POD 5003:5003 &
+        sleep 5
+        curl --fail http://localhost:5003 || exit 1
+
+    # 🚦 Switch Traffic to Blue
     - name: Switch traffic to Blue
       run: |
         sed -i 's/version: green/version: blue/' k8s/blue-green/services/*.yaml
         kubectl apply -f k8s/blue-green/services/
 
+    # 🧼 Cleanup Green (Optional)
     - name: Delete Green Deployment (optional cleanup)
       run: |
         kubectl delete -f k8s/blue-green/green/ || true

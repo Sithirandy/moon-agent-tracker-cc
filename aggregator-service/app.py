@@ -10,6 +10,11 @@ sales_data = [
     {"agent_code": "A103", "product": "Term", "branch": "Colombo"}
 ]
 
+# ✅ Health check route for CI/CD validation
+@app.route("/", methods=["GET"])
+def health_check():
+    return "Aggregator Service is up and running!", 200
+
 @app.route("/aggregate", methods=["GET"])
 def aggregate():
     product_counts = {}

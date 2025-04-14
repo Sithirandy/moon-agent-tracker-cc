@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: integration-service
+  name: integration-service-blue
 spec:
   selector:
     app: integration-service
-    version: blue  # Will be replaced by CI/CD during traffic switch
+    version: blue
   ports:
     - protocol: TCP
       port: 5003

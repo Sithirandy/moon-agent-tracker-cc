@@ -2,6 +2,11 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
+# ✅ Health check route
+@app.route("/", methods=["GET"])
+def health_check():
+    return "Notification Service is up and running!", 200
+
 @app.route("/notify", methods=["POST"])
 def notify():
     data = request.get_json()

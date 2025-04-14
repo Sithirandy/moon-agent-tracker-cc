@@ -4,6 +4,11 @@ app = Flask(__name__)
 
 sales_db = []
 
+# ✅ Health check route for CI/CD validation
+@app.route("/", methods=["GET"])
+def health_check():
+    return "Integration Service is up and running!", 200
+
 @app.route("/sales", methods=["POST"])
 def record_sale():
     data = request.get_json()

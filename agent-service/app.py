@@ -5,6 +5,10 @@ app = Flask(__name__)
 # In-memory agent storage
 agents = {}
 
+@app.route("/")
+def health_check():
+    return "Agent Service is up and running!", 200
+
 @app.route("/agent", methods=["POST"])
 def add_agent():
     data = request.get_json()
