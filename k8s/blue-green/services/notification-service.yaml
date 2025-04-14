@@ -3,11 +3,10 @@ kind: Service
 metadata:
   name: notification-service
 spec:
+  type: LoadBalancer
   selector:
     app: notification-service
-    version: blue
   ports:
     - protocol: TCP
-      port: 80
+      port: 5001
       targetPort: 5001
-  type: ClusterIP
