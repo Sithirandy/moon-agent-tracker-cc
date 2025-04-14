@@ -46,7 +46,7 @@ jobs:
 
     - name: Run Tests (Post-Deployment)
       run: |
-        curl --fail http://$(kubectl get svc agent-service -o jsonpath='{.spec.clusterIP}') || exit 1
+        curl --fail http://$(kubectl get svc agent-service -o jsonpath='{.spec.clusterIP}'):5000 || exit 1
 
     - name: Switch traffic to Blue
       run: |
