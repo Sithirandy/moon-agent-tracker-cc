@@ -19,6 +19,6 @@ spec:
     spec:
       containers:
       - name: integration-service
-        image: sithirandy/integration-service:latest
+        image: 715841324407.dkr.ecr.ap-south-1.amazonaws.com/integration-service
         ports:
         - containerPort: 5002

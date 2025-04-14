@@ -19,6 +19,6 @@ spec:
     spec:
       containers:
       - name: agent-service
-        image: sithirandy/agent-service:latest
+        image: 715841324407.dkr.ecr.ap-south-1.amazonaws.com/agent-service
         ports:
         - containerPort: 5000

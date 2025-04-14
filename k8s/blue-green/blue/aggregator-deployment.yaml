@@ -19,6 +19,6 @@ spec:
     spec:
       containers:
       - name: aggregator-service
-        image: sithirandy/aggregator-service:latest
+        image: 715841324407.dkr.ecr.ap-south-1.amazonaws.com/aggregator-service
         ports:
         - containerPort: 5003
