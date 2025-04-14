@@ -6,12 +6,12 @@ on:
       - master
 
 env:
-  EKS_CLUSTER_NAME: moonagent-cluster
+  EKS_CLUSTER_NAME: moon-agent-tracker-cluster
   AWS_REGION: ap-south-1
-  DOCKER_IMAGE_AGENT: your-dockerhub/agent-service
-  DOCKER_IMAGE_INTEGRATION: your-dockerhub/integration-service
-  DOCKER_IMAGE_NOTIFICATION: your-dockerhub/notification-service
-  DOCKER_IMAGE_AGGREGATOR: your-dockerhub/aggregator-service
+  DOCKER_IMAGE_AGENT: sithirandy/agent-service
+  DOCKER_IMAGE_INTEGRATION: sithirandy/integration-service
+  DOCKER_IMAGE_NOTIFICATION: sithirandy/notification-service
+  DOCKER_IMAGE_AGGREGATOR: sithirandy/aggregator-service
 
 jobs:
   deploy:
