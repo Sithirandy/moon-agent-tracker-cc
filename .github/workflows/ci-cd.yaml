@@ -37,56 +37,77 @@ jobs:
       run: |
         aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
 
-    # 🔵 Deploy Blue Environment
-    - name: Deploy Blue Environment
+    # 🐳 Push Docker images to ECR (CI Integration Part)
+    - name: Build and Push Docker Images to ECR
       run: |
-        kubectl apply -f k8s/blue-green/blue/
-        kubectl apply -f k8s/blue-green/services-blue/
+        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin 715841324407.dkr.ecr.$AWS_REGION.amazonaws.com
 
-    # 🟢 Wait for Blue Rollout to Complete
-    - name: Wait for Blue Rollout
-      run: |
-        kubectl rollout status deployment/agent-service-blue
-        kubectl rollout status deployment/integration-service-blue
-        kubectl rollout status deployment/notification-service-blue
-        kubectl rollout status deployment/aggregator-service-blue
+        docker build -t agent-service ./agent-service
+        docker tag agent-service:latest $DOCKER_IMAGE_AGENT:latest
+        docker push $DOCKER_IMAGE_AGENT:latest
 
-    # ✅ Health Check via Port Forwarding
-    - name: Health Check Agent Service (Blue)
+        docker build -t integration-service ./integration-service
+        docker tag integration-service:latest $DOCKER_IMAGE_INTEGRATION:latest
+        docker push $DOCKER_IMAGE_INTEGRATION:latest
+
+        docker build -t notification-service ./notification-service
+        docker tag notification-service:latest $DOCKER_IMAGE_NOTIFICATION:latest
+        docker push $DOCKER_IMAGE_NOTIFICATION:latest
+
+        docker build -t aggregator-service ./aggregator-service
+        docker tag aggregator-service:latest $DOCKER_IMAGE_AGGREGATOR:latest
+        docker push $DOCKER_IMAGE_AGGREGATOR:latest
+
+    # 🟢 Deploy Green Environment
+    - name: Deploy Green Environment
       run: |
-        POD=$(kubectl get pods -l app=agent-service,version=blue -o jsonpath="{.items[0].metadata.name}")
+        kubectl apply -f k8s/blue-green/green/
+        kubectl apply -f k8s/blue-green/services-green/
+
+    # 🟢 Wait for Green Rollout to Complete
+    - name: Wait for Green Rollout
+      run: |
+        kubectl rollout status deployment/agent-service-green
+        kubectl rollout status deployment/integration-service-green
+        kubectl rollout status deployment/notification-service-green
+        kubectl rollout status deployment/aggregator-service-green
+
+    # ✅ Health Checks (Green)
+    - name: Health Check Agent Service (Green)
+      run: |
+        POD=$(kubectl get pods -l app=agent-service,version=green -o jsonpath="{.items[0].metadata.name}")
         kubectl port-forward $POD 5000:5000 &
         sleep 5
         curl --fail http://localhost:5000 || exit 1
 
-    - name: Health Check Notification Service (Blue)
+    - name: Health Check Notification Service (Green)
       run: |
-        POD=$(kubectl get pods -l app=notification-service,version=blue -o jsonpath="{.items[0].metadata.name}")
+        POD=$(kubectl get pods -l app=notification-service,version=green -o jsonpath="{.items[0].metadata.name}")
         kubectl port-forward $POD 5002:5002 &
         sleep 5
         curl --fail http://localhost:5002 || exit 1
 
-    - name: Health Check Integration Service (Blue)
+    - name: Health Check Integration Service (Green)
       run: |
-        POD=$(kubectl get pods -l app=integration-service,version=blue -o jsonpath="{.items[0].metadata.name}")
+        POD=$(kubectl get pods -l app=integration-service,version=green -o jsonpath="{.items[0].metadata.name}")
         kubectl port-forward $POD 5001:5001 &
         sleep 5
         curl --fail http://localhost:5001 || exit 1
 
-    - name: Health Check Aggregator Service (Blue)
+    - name: Health Check Aggregator Service (Green)
       run: |
-        POD=$(kubectl get pods -l app=aggregator-service,version=blue -o jsonpath="{.items[0].metadata.name}")
+        POD=$(kubectl get pods -l app=aggregator-service,version=green -o jsonpath="{.items[0].metadata.name}")
         kubectl port-forward $POD 5003:5003 &
         sleep 5
         curl --fail http://localhost:5003 || exit 1
 
-    # 🚦 Switch Traffic to Blue
-    - name: Switch traffic to Blue
+    # 🚦 Switch traffic to Green
+    - name: Switch traffic to Green
       run: |
-        sed -i 's/version: green/version: blue/' k8s/blue-green/services/*.yaml
+        sed -i 's/version: blue/version: green/' k8s/blue-green/services/*.yaml
         kubectl apply -f k8s/blue-green/services/
 
-    # 🧼 Cleanup Green (Optional)
-    - name: Delete Green Deployment (optional cleanup)
+    # 🧼 Cleanup Blue (Optional)
+    - name: Delete Blue Deployment (optional cleanup)
       run: |
-        kubectl delete -f k8s/blue-green/green/ || true
+        kubectl delete -f k8s/blue-green/blue/ || true
