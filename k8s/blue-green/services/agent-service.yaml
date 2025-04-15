@@ -3,6 +3,7 @@ kind: Service
 metadata:
   name: agent-service
 spec:
+  type: LoadBalancer
   selector:
     app: agent-service
     version: blue  # Will be replaced by CI/CD during traffic switch
@@ -10,4 +11,3 @@ spec:
     - protocol: TCP
       port: 5000
       targetPort: 5000
-  type: ClusterIP

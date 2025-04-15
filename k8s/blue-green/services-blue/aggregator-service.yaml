@@ -3,6 +3,7 @@ kind: Service
 metadata:
   name: integration-service-blue
 spec:
+  type: LoadBalancer
   selector:
     app: integration-service
     version: blue
@@ -10,4 +11,3 @@ spec:
     - protocol: TCP
       port: 5003
       targetPort: 5003
-  type: ClusterIP

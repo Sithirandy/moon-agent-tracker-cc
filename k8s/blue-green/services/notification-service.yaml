@@ -3,6 +3,7 @@ kind: Service
 metadata:
   name: notification-service
 spec:
+  type: LoadBalancer
   selector:
     app: notification-service
     version: blue  # Will be replaced by CI/CD during traffic switch
@@ -10,4 +11,3 @@ spec:
     - protocol: TCP
       port: 5001
       targetPort: 5001
-  type: ClusterIP

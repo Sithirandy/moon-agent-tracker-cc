@@ -3,6 +3,7 @@ kind: Service
 metadata:
   name: integration-service
 spec:
+  type: LoadBalancer
   selector:
     app: integration-service
     version: blue  # Will be replaced by CI/CD during traffic switch
@@ -10,4 +11,4 @@ spec:
     - protocol: TCP
       port: 5003
       targetPort: 5003
-  type: ClusterIP
+
