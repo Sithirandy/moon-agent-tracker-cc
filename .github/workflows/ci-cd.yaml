@@ -62,16 +62,16 @@ jobs:
     - name: Health Check Notification Service (Blue)
       run: |
         POD=$(kubectl get pods -l app=notification-service,version=blue -o jsonpath="{.items[0].metadata.name}")
-        kubectl port-forward $POD 5001:5001 &
+        kubectl port-forward $POD 5002:5002 &
         sleep 5
-        curl --fail http://localhost:5001 || exit 1
+        curl --fail http://localhost:5002 || exit 1
 
     - name: Health Check Integration Service (Blue)
       run: |
         POD=$(kubectl get pods -l app=integration-service,version=blue -o jsonpath="{.items[0].metadata.name}")
-        kubectl port-forward $POD 5002:5002 &
+        kubectl port-forward $POD 5001:5001 &
         sleep 5
-        curl --fail http://localhost:5002 || exit 1
+        curl --fail http://localhost:5001 || exit 1
 
     - name: Health Check Aggregator Service (Blue)
       run: |

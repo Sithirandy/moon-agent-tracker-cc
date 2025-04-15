@@ -21,4 +21,4 @@ spec:
       - name: notification-service
         image: 715841324407.dkr.ecr.ap-south-1.amazonaws.com/notification-service
         ports:
-        - containerPort: 5001
+        - containerPort: 5002

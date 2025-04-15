@@ -21,4 +21,4 @@ spec:
       - name: integration-service
         image: 715841324407.dkr.ecr.ap-south-1.amazonaws.com/integration-service
         ports:
-        - containerPort: 5002
+        - containerPort: 5001

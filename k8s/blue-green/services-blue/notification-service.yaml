@@ -9,5 +9,5 @@ spec:
     version: blue
   ports:
     - protocol: TCP
-      port: 5001
-      targetPort: 5001
+      port: 5002
+      targetPort: 5002
