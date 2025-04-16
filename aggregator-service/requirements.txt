@@ -1,1 +1,4 @@
-flask
+Flask
+pymysql
+mysql-connector-python
+APScheduler
